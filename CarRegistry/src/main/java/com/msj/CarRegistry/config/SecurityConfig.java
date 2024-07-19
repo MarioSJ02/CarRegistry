@@ -54,6 +54,8 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST,"/cars/**").permitAll()
             .requestMatchers(HttpMethod.PUT,"/cars/**").permitAll()
             .requestMatchers(HttpMethod.DELETE,"/cars/**").permitAll()
+            .requestMatchers(HttpMethod.POST,"/images/**").permitAll()
+            .requestMatchers(HttpMethod.GET,"/images/**").permitAll()
             .anyRequest().authenticated()
         )
         .authenticationProvider(authenticationProvider()).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
