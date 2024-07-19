@@ -8,6 +8,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.Key;
 import java.util.Date;
@@ -18,31 +20,43 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
+
     @Value("${token.secret.key}")
-    String jwtSecretKey;
+    private String jwtSecretKey;
 
-    @Value("${token.expirations}")
-    Long jwtExpirations;
+    @Value("${token.expirations:3600000}") // Por defecto 1 hora si no se especifica
+    private Long jwtExpirations;
 
+    // Extraer el nombre de usuario del token
     public String extractUserName(String token) {
-        return extractClaim(token, Claims::getSubject);
+        try {
+            return extractClaim(token, Claims::getSubject);
+        } catch (Exception e) {
+            logger.error("Error al extraer el nombre de usuario del token", e);
+            return null;
+        }
     }
 
+    // Verificar si el token es válido
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
-        return (userName.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return userName != null && userName.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolvers) {
+    // Extraer un reclamo específico del token
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
-        return claimsResolvers.apply(claims);
+        return claimsResolver.apply(claims);
     }
 
+    // Generar un nuevo token
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
-    private String generateToken(Map<String,Object> extraClaims, UserDetails userDetails){
+    // Generar un nuevo token con reclamos adicionales
+    private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
@@ -53,24 +67,34 @@ public class JwtService {
                 .compact();
     }
 
-    private boolean isTokenExpired(String token){   return extractExpiration(token).before(new Date()); }
-
-    private Date extractExpiration(String token){   return extractClaim(token,Claims::getExpiration);   }
-
-    private Claims extractAllClaims(String token){
-        return Jwts
-                .parser()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    // Verificar si el token ha expirado
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
     }
 
-    public Key getSigningKey(){
+    // Extraer la fecha de expiración del token
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    // Extraer todos los reclamos del token
+    private Claims extractAllClaims(String token) {
+        try {
+            return Jwts
+                    .parser()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            logger.error("Error al extraer los reclamos del token", e);
+            return null;
+        }
+    }
+
+    // Obtener la clave para firmar el token
+    private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
-
-
 }

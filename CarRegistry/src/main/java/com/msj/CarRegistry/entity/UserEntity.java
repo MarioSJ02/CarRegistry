@@ -16,28 +16,26 @@ import java.util.List;
 @Entity
 @ToString
 @Table(name = "User")
-public class UserEntity  implements UserDetails {
+public class UserEntity implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-        Long id;
+    Long id;
 
-        String name;
+    String name;
 
-        @Column(unique = true)
-        String mail;
+    @Column(unique = true)
+    String mail;
 
-        String password;
+    String password;
 
-        String role;
+    String role;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    private ImageEntity image;
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() { return List.of(new SimpleGrantedAuthority(role));  }
+    public Collection<? extends GrantedAuthority> getAuthorities() {return List.of(new SimpleGrantedAuthority(role));}
 
     @Override
-    public String getUsername() { return mail; }
-
-
-
-
+    public String getUsername() {return mail;}
 }

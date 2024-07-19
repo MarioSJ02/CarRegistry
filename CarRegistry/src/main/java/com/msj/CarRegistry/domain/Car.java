@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Car {
 
-    private int id;
+    private Long id;
 
     private Brand brand;
 
